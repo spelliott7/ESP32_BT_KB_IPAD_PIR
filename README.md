@@ -16,3 +16,14 @@ code' every time it detected motion every few seconds. Probably don't want that.
 At some point I'd like to build it as a custom component in Esphome so that it can be a fully functional device with the ability to send
 the iPad unlock as a trigger in response to automation but can still include other pins for temp, OTA, etc. 
 
+To configure: Set all the options for WiFi and MQTT server at the top.  Set your pin code inside of the quotes provided to whatever
+you use. You should be able to put 6 in there.  If you want it to reset the trigger faster or slower or to match the timeout on your iPad
+just adjust the "#define timeSeconds 300" to however long you want.  USE SECONDS, not minutes. At default it's set to 5 minutes between
+triggers so you can adjust as needed.
+
+You can also set the pins to match whatever pins you like just change:
+const int led = 26;
+const PROGMEM uint8_t PIR_PIN = 27
+
+The LED pin isn't required and is safe to ignore if you don't want an led to light up when unlocked. PIR is kind of necessary. 
+Have fun!
