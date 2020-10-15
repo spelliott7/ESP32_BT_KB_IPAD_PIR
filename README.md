@@ -22,7 +22,7 @@ the iPad unlock as a trigger in response to automation but can still include oth
 To configure: Set all the options for WiFi and MQTT server at the top.  Set your pin code inside of the quotes provided to whatever
 you use. You should be able to put 6 in there.  If you want it to reset the trigger faster or slower or to match the timeout on your iPad
 just adjust the "#define timeSeconds 300" to however long you want.  USE SECONDS, not minutes. At default it's set to 5 minutes between
-triggers so you can adjust as needed.
+triggers so you can adjust as needed. Set your Partition Scheme to No OTA 2MB / 2MB SPIFFS to make it fit. Apparently the bleKeyboard is a large library.
 
 You can also set the pins to match whatever pins you like just change:
 const int led = 26;
