@@ -6,6 +6,9 @@ unlock the iPad, open HA, and turn on the switch for the dartboard light, turn o
 As you can imagine that is tedious so I got a great idea from /u/RubberDinero to add a PIR and a bluetooth keyboard library
 to an ESP32 so it could connect and unlock it. I use the MQTT message to fire up the other devices.  Voila.
 
+I forgot to include the BleKeyboard library info: https://github.com/T-vK/ESP32-BLE-Keyboard
+Download the zip file and upload it to the library in Arduino. Examples included. More info on that page.
+
 This essentially sees motion > sends space bar > space bar (to wake the screen via BT keyboard) > waits a couple of seconds > sends four
 digit code (did not test 6 but it should work) > then does nothing for 5 minutes until it can send again.  I included MQTT publishing so
 you can base other triggers around it within HA / NodeRed / whatever.  Hoping I can figure out how to do a timed response with a run once
