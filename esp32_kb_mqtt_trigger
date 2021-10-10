@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
+#define USE_NIMBLE
 #include <BleKeyboard.h>
 
 
