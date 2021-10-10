@@ -1,0 +1,51 @@
+1. Get Arduino and install it. https://www.arduino.cc/en/software (I don't recommend the app store version).
+
+Settings for Arduino:
+	a. File > Preferences 
+	b. In the Additional Boards Manager paste this: 
+		https://dl.espressif.com/dl/package_esp32_index.json, http://arduino.esp8266.com/stable/package_esp8266com_index.json
+		This adds support for the ESP32's and ESP8266 (D1 Minis and others too) 
+	c: Now we need to add the libraries for this code. The libraries are at the top of the code and look like "#include <WiFi.h>"
+		If you don't add them it will fail. Some you have to download the zip and upload it, others are included through an integrated
+		search. In Arduino select Sketch > Include Library > Manage Libraries (to search) or Add .ZIP Library to upload.
+	d: In the Library Manager search for Esp32WifiManager by Kevin Harrington - Install
+		Search for PubSubClient by Nick O'Leary - Install 
+		Download ESP32-BLE-Keyboard.zip from this page: https://github.com/T-vK/ESP32-BLE-Keyboard/releases/tag/0.3.0
+		In the Arduino IDE go to "Sketch" -> "Include Library" -> "Add .ZIP Library..." and select the file you just downloaded.
+	e: In Arduino select Tools > Board > ESP32 Arduino > ESP32 Dev Module. 
+		Tools > Partion Scheme > HUGE app (3MB No OTA/1MB Spiffs)
+
+2. Get this: https://github.com/spelliott7/ESP32_BT_KB_IPAD_PIR/blob/master/esp32_kb_mqtt_trigger
+
+3. Click the 'Raw' button and CTRL-A CTRL-C 
+
+4. Change values for the WiFi and MQTT etc. Anything IN_BOLD_LINE_STYLE will be your spec. The "timeSeconds"
+	refers to the pause between sending commands to the iPad. You may need to increase this depending on how
+	the iPad reacts in testing. The MQTT_USER is setup in HA as a User, the add-on MQTT will allow access to users in HA.
+	
+5. Connect ESP32 to computer, set port used in Arduino > Tools > Port (Usually COM#), hold the "Boot" button on ESP32 and 
+	press the Arrow -> in Arduino, continue holding button until you see it connecting to the chip in the output of Arduino. That 
+	allows the app to program the chip. 
+	
+6. Save your MQTT_TOPIC to use in the configuration for HA. In the switch below I used ipad/kb as the topic, if you change
+	it in the code then it needs to be the same in the command_topic: below.
+	
+7. Add the switch to your configuration.yaml must have exact spaces, not tabs. So if you were to type it switch: then return,
+	2 spaces then - platform etc. Copying from this file may work, but if you get errors make sure you only have one instance 
+	of "switch:" in your file. If there's others then move the -platform portion under the first "switch:" and remove the second.
+
+switch:
+  - platform: mqtt
+    name: "iPad Switch"
+    command_topic: "ipad/kb"
+    payload_on: "on"
+    payload_off: "off"
+
+8. Save the file > Configuration > Server Controls > Check Configuration > Restart
+
+9. HA notifications should show a QR code for intregration with HomeKit. Set that up. Confirm that you see your "iPad Switch"
+	in HA and HomeKit (after integration). 
+
+10. Pair the ESP32 with your iPad. In Bluetooth settings it will display as "ESP32 BLE Keyboard". No code required.
+	
+11. Use HA or HomeKit to trigger the switch or create automation to trigger based on your needs.
