@@ -8,14 +8,14 @@
 void callback(char* topic, byte* payload, unsigned int length);
 
 //EDIT THESE LINES TO MATCH YOUR SETUP
-#define MQTT_SERVER "10.10.10.11"  //you MQTT IP Address
+#define MQTT_SERVER "222.222.222.222"  //your MQTT IP Address
 const PROGMEM uint16_t mqtt_port = 1883;
-const char* ssid = "devops";
-const char* password = "thisiscoolforme";
-const char* mqtt_client = "ipad_kb";
-const char* mqtt_user = "mosquitto";
-const char* mqtt_pass = "youcantrunifyoudont";
-const char* pin_code = "9999"; //iPad pin code
+const char* ssid = "wifi ssid";
+const char* password = "wifi pass";
+const char* mqtt_client = "ipad_kb"; //whatever you want the client to be, must not match other clients in HA
+const char* mqtt_user = "mqtt user";
+const char* mqtt_pass = "mqtt pass";
+const char* pin_code = "XXXX"; //iPad pin code
 #define timeSeconds 300 //set to number of seconds between activating BT keyboard commands
 
 char const* switchTopic = "ipad/kb";
@@ -74,19 +74,26 @@ void callback(char* topic, byte* payload, unsigned int length) {
      //turn the switch on if the payload is '1' and publish to the MQTT server a confirmation message
      if(payload[0] == '1'){
         Serial.println("Unlocking iPad");
-        bleKeyboard.write(32); // space to wake ipad
-        delay(100);
+        bleKeyboard.write(32); // space to wake ipad. ascii for space = 32
+        delay(1000);
         bleKeyboard.write(32); // the double-tap
         delay(4000); // 1000 = 1s
-        bleKeyboard.print(pin_code); //sends code
+        bleKeyboard.println(pin_code); //sends code
         bleKeyboard.releaseAll(); // releases keys
-        delay (timeSeconds*1000);
+        delay (timeSeconds);
        client.publish("ipad/kb/stat", "on");
        }
 
       //turn the switch off if the payload is '0' and publish to the MQTT server a confirmation message
      else if (payload[0] == '0'){
        Serial.println("Lock the iPad");
+        bleKeyboard.press(KEY_LEFT_CTRL); // CTRL+COMMAND(WIN GUI)+q locks iPad
+        delay(100);
+        bleKeyboard.press(KEY_LEFT_GUI);
+        delay(100);
+        bleKeyboard.press(113);
+        delay(100);
+        bleKeyboard.releaseAll();
        client.publish("ipad/kb/stat", "off");
        }
      }
