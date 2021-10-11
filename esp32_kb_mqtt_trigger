@@ -1,124 +1,157 @@
+
 #include <WiFi.h>
 #include <PubSubClient.h>
 #define USE_NIMBLE
 #include <BleKeyboard.h>
 
 
+void callback(char* topic, byte* payload, unsigned int length);
 
-
-//User selected properties 
-const PROGMEM char* WIFI_SSID = "WiFi SSID";
-const PROGMEM char* WIFI_PASSWORD = "WiFi Pass";
-
-// MQTT: ID, server IP, port, username and password
-const PROGMEM char* MQTT_CLIENT_ID = "ipad_kb";
-const PROGMEM char* MQTT_SERVER_IP = "MQTT IP/Server info";
-const PROGMEM uint16_t MQTT_SERVER_PORT = 1883;
-const PROGMEM char* MQTT_USER = "MQTT User";
-const PROGMEM char* MQTT_PASSWORD = "MQTT Pass";
-const PROGMEM char* PIN_CODE = "0000"; //iPad pin code
-const PROGMEM char* MQTT_TOPIC = "ipad/kb"; // MQTT topic
+//EDIT THESE LINES TO MATCH YOUR SETUP
+#define MQTT_SERVER "xxx.xxx.xxx.xxx"  //you MQTT IP Address
+const PROGMEM uint16_t mqtt_port = 1883;
+const char* ssid = "YOUESSID";
+const char* password = "WIFI_PASSWORD";
+const char* mqtt_user = "mosquitto";
+const char* mqtt_pass = "youcantrunifyoudont";
+const char* pin_code = "9999"; //iPad pin code
 #define timeSeconds 300 //set to number of seconds between activating BT keyboard commands
 
-unsigned long now = millis();
-unsigned long lastTrigger = 0;
-boolean startTimer = false;
+char const* switchTopic = "ipad/kb";
 
 WiFiClient wifiClient;
 BleKeyboard bleKeyboard;
 PubSubClient client(wifiClient);
-long lastMsg = 0;
-char msg[50];
-int value = 0;
-
-  
-
-void reconnect() {
-  // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.println("INFO: Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD)) {
-      Serial.println("INFO: connected");
-      client.subscribe(MQTT_TOPIC);
-    } else {
-      Serial.print("ERROR: failed, rc=");
-      Serial.print(client.state());
-      Serial.println("DEBUG: try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
 
 void setup() {
-  // init the serial
+  //start the serial line for debugging
   Serial.begin(115200);
+  delay(100);
 
-  // init the WiFi connection
-  Serial.println();
-  Serial.println();
-  Serial.print("INFO: Connecting to ");
-  Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("INFO: WiFi connected");
-  Serial.println("INFO: IP address: ");
-  Serial.println(WiFi.localIP());
-
-  // init the MQTT connection
-  client.setServer(MQTT_SERVER_IP, MQTT_SERVER_PORT);
+    
+  client.setServer(MQTT_SERVER, mqtt_port);
   client.setCallback(callback);
 
   Serial.println("Ready to send PIN via BT");
   bleKeyboard.begin();
-  
+
+  //wait a bit before starting the main loop
+      delay(2000);
+}
 }
 
-void callback(char* p_topic, byte* p_payload, unsigned int p_length) {
-  Serial.print("Message arrived on topic: ");
-  Serial.print(p_topic);
-  Serial.print(". Message: ");
-  String messageCmd;
-  
-  for (int i = 0; i < p_length; i++) {
-    Serial.print((char)p_payload[i]);
-    messageCmd += (char)p_payload[i];
-  }
-  Serial.println();
+void loop(){
 
-  if (String(p_topic) == "MQTT_TOPIC") {
-    if (messageCmd == "on") {
-      // on message arrives then do the thing
-      Serial.println("Sending wake command...");
-      bleKeyboard.write(32);
-      delay(100);
-      bleKeyboard.write(32);
-      delay(3500);
-      bleKeyboard.print(PIN_CODE); 
-      bleKeyboard.releaseAll();
-      delay (timeSeconds*1000);
-    }
-  } else {
-    if (messageCmd == "off") {
-      Serial.println("off");
-    // can add bleKeyboard.write commands to lock ipad here
-      }
-    }
-}
+  //reconnect if connection is lost
+  if (!client.connected() && WiFi.status() == 3) {reconnect();}
 
-void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
+  //maintain MQTT connection
   client.loop();
-  now = millis();
-  
+
+ 
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+
+  //convert topic to string to make it easier to work with
+  String topicStr = topic; 
+
+  //Print out some debugging info
+  Serial.println("Callback update.");
+  Serial.print("Topic: ");
+  Serial.println(topicStr);
+
+   if (topicStr == "ipad/kb") 
+    {
+
+     //turn the switch on if the payload is '1' and publish to the MQTT server a confirmation message
+     if(payload[0] == '1'){
+        bleKeyboard.write(32); // space to wake ipad
+        delay(100);
+        bleKeyboard.write(32); // the double-tap
+        delay(3500); // wait for 3.5seconds 
+        bleKeyboard.print(pin_code); //sends code
+        bleKeyboard.releaseAll(); // releases keys
+        delay (timeSeconds*1000);
+       client.publish("ipad/kb/stat", "on");
+       }
+
+      //turn the switch off if the payload is '0' and publish to the MQTT server a confirmation message
+     else if (payload[0] == '0'){
+       //digitalWrite(switchPin1, LOW);
+       client.publish("ipad/kb/stat", "off");
+       }
+     }
+
   }
+
+
+void reconnect() {
+
+  //attempt to connect to the wifi if connection is lost
+  if(WiFi.status() != WL_CONNECTED){
+    //debug printing
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    //loop while we wait for connection
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    //print out some more debug once connected
+    Serial.println("");
+    Serial.println("WiFi connected");  
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+
+  //make sure we are connected to WIFI before attemping to reconnect to MQTT
+  if(WiFi.status() == WL_CONNECTED){
+  // Loop until we're reconnected to the MQTT server
+    while (!client.connected()) {
+      Serial.print("Attempting MQTT connection...");
+
+      // Generate client name based on MAC address and last 8 bits of microsecond counter
+      String clientName;
+      clientName += "esp32-";
+      uint8_t mac[6];
+      WiFi.macAddress(mac);
+      clientName += macToStr(mac);
+
+      //if connected, subscribe to the topic(s) we want to be notified about
+      //EJ: Delete "mqtt_username", and "mqtt_password" here if you are not using any 
+      if (client.connect((char*) clientName.c_str(),"mqtt_username", "mqtt_password")) {  //EJ: Update accordingly with your MQTT account 
+        Serial.print("\tMQTT Connected");
+        client.subscribe(switchTopic);
+
+      }
+
+      //otherwise print failed for debugging
+      else{Serial.println("\tFailed."); abort();}
+    }
+  }
+}
+
+//generate unique name from MAC addr
+String macToStr(const uint8_t* mac){
+
+  String result;
+
+  for (int i = 0; i < 6; ++i) {
+    result += String(mac[i], 16);
+
+    if (i < 5){
+      result += ':';
+    }
+  }
+
+  return result;
+}
