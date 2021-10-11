@@ -12,8 +12,8 @@ void callback(char* topic, byte* payload, unsigned int length);
 const PROGMEM uint16_t mqtt_port = 1883;
 const char* ssid = "YOUESSID";
 const char* password = "WIFI_PASSWORD";
-const char* mqtt_user = "mosquitto";
-const char* mqtt_pass = "youcantrunifyoudont";
+const char* mqtt_user = "mqtt user";
+const char* mqtt_pass = "mqtt password";
 const char* pin_code = "9999"; //iPad pin code
 #define timeSeconds 300 //set to number of seconds between activating BT keyboard commands
 
