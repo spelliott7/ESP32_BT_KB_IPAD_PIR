@@ -8,12 +8,13 @@
 void callback(char* topic, byte* payload, unsigned int length);
 
 //EDIT THESE LINES TO MATCH YOUR SETUP
-#define MQTT_SERVER "xxx.xxx.xxx.xxx"  //you MQTT IP Address
+#define MQTT_SERVER "10.10.10.11"  //you MQTT IP Address
 const PROGMEM uint16_t mqtt_port = 1883;
-const char* ssid = "YOUESSID";
-const char* password = "WIFI_PASSWORD";
-const char* mqtt_user = "mqtt user";
-const char* mqtt_pass = "mqtt password";
+const char* ssid = "devops";
+const char* password = "thisiscoolforme";
+const char* mqtt_client = "ipad_kb";
+const char* mqtt_user = "mosquitto";
+const char* mqtt_pass = "youcantrunifyoudont";
 const char* pin_code = "9999"; //iPad pin code
 #define timeSeconds 300 //set to number of seconds between activating BT keyboard commands
 
@@ -37,7 +38,7 @@ void setup() {
     
   client.setServer(MQTT_SERVER, mqtt_port);
   client.setCallback(callback);
-
+   Serial.println("MQTT Connection Successful");
   Serial.println("Ready to send PIN via BT");
   bleKeyboard.begin();
 
@@ -72,10 +73,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
      //turn the switch on if the payload is '1' and publish to the MQTT server a confirmation message
      if(payload[0] == '1'){
+        Serial.println("Unlocking iPad");
         bleKeyboard.write(32); // space to wake ipad
         delay(100);
         bleKeyboard.write(32); // the double-tap
-        delay(3500); // wait for 3.5seconds 
+        delay(4000); // 1000 = 1s
         bleKeyboard.print(pin_code); //sends code
         bleKeyboard.releaseAll(); // releases keys
         delay (timeSeconds*1000);
@@ -84,7 +86,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
       //turn the switch off if the payload is '0' and publish to the MQTT server a confirmation message
      else if (payload[0] == '0'){
-       //digitalWrite(switchPin1, LOW);
+       Serial.println("Lock the iPad");
        client.publish("ipad/kb/stat", "off");
        }
      }
@@ -93,65 +95,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 
 void reconnect() {
-
-  //attempt to connect to the wifi if connection is lost
-  if(WiFi.status() != WL_CONNECTED){
-    //debug printing
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    //loop while we wait for connection
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-
-    //print out some more debug once connected
-    Serial.println("");
-    Serial.println("WiFi connected");  
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
-
-  //make sure we are connected to WIFI before attemping to reconnect to MQTT
-  if(WiFi.status() == WL_CONNECTED){
-  // Loop until we're reconnected to the MQTT server
-    while (!client.connected()) {
-      Serial.print("Attempting MQTT connection...");
-
-      // Generate client name based on MAC address and last 8 bits of microsecond counter
-      String clientName;
-      clientName += "esp32-";
-      uint8_t mac[6];
-      WiFi.macAddress(mac);
-      clientName += macToStr(mac);
-
-      //if connected, subscribe to the topic(s) we want to be notified about
-      //EJ: Delete "mqtt_username", and "mqtt_password" here if you are not using any 
-      if (client.connect((char*) clientName.c_str(),"mqtt_username", "mqtt_password")) {  //EJ: Update accordingly with your MQTT account 
-        Serial.print("\tMQTT Connected");
-        client.subscribe(switchTopic);
-
-      }
-
-      //otherwise print failed for debugging
-      else{Serial.println("\tFailed."); abort();}
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.println("INFO: Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect(mqtt_client, mqtt_user, mqtt_pass)) {
+      Serial.println("INFO: connected");
+      client.subscribe(switchTopic);
+    } else {
+      Serial.print("ERROR: failed, rc=");
+      Serial.print(client.state());
+      Serial.println("DEBUG: try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
     }
   }
 }
 
-//generate unique name from MAC addr
-String macToStr(const uint8_t* mac){
 
-  String result;
 
-  for (int i = 0; i < 6; ++i) {
-    result += String(mac[i], 16);
 
-    if (i < 5){
-      result += ':';
-    }
-  }
-
-  return result;
-}
